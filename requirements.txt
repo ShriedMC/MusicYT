@@ -1,0 +1,13 @@
+# Runtime
+pywebview>=6.2
+yt-dlp>=2026.8.19
+
+# Build only (creating the standalone .exe)
+pyinstaller>=6.21
+
+# Notes:
+#  * yt-dlp needs a JavaScript runtime (Deno) at run time. The app downloads it
+#    automatically on first launch into %LOCALAPPDATA%\MusicYT\runtime. You can
+#    also install it yourself:  winget install DenoLand.Deno
+#  * No ffmpeg required - native YouTube audio (m4a / opus) is played as-is.
+#  * 'bottle' is pulled in automatically as a pywebview dependency.

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MusicYT Player</title>
+    <!-- Vendored assets (offline-safe) -->
+    <link rel="stylesheet" href="vendor/inter/inter.css">
+    <link rel="stylesheet" href="vendor/phosphor/regular.css">
+    <link rel="stylesheet" href="vendor/phosphor/fill.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Dynamic Background for Glassmorphism -->
+    <div id="dynamic-bg"></div>
+
+    <!-- First-run runtime setup banner -->
+    <div id="runtime-banner" class="runtime-banner hidden">
+        <div class="spinner" style="width:16px;height:16px;border-width:2px;margin:0;"></div>
+        <span id="runtime-banner-text">Setting up the downloader…</span>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="context-menu" class="context-menu hidden">
+        <div class="context-menu-item" id="ctx-play-next"><i class="ph ph-list-plus"></i> Play Next</div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" id="ctx-remove"><i class="ph ph-trash"></i> Remove from Playlist</div>
+    </div>
+
+    <audio id="local-player" class="hidden"></audio>
+
+    <!-- Modals -->
+    <div id="warning-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <i class="ph ph-warning-circle modal-icon"></i>
+            <h2>Copyright Warning</h2>
+            <p>This application uses YouTube to search and download audio for personal use.</p>
+            <p>By proceeding, you acknowledge that you will not distribute or infringe upon copyrighted materials.</p>
+            <p class="free-notice" id="modal-free-notice">MusicYT is free and will always be free. If you paid for this, you got scammed.</p>
+            <button id="accept-warning-btn" class="primary-btn">I Understand &amp; Accept</button>
+        </div>
+    </div>
+
+    <div id="create-playlist-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2>Create Playlist</h2>
+            <input type="text" id="new-playlist-name" placeholder="Playlist Name..." class="modal-input">
+            <div class="modal-actions">
+                <button id="cancel-create-playlist" class="secondary-btn">Cancel</button>
+                <button id="confirm-create-playlist" class="primary-btn">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="add-to-playlist-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2>Add to Playlist</h2>
+            <div id="modal-playlist-list" class="playlist-list-selectable"></div>
+            <div class="modal-actions">
+                <button id="cancel-add-playlist" class="secondary-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="bulk-import-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 500px;">
+            <h2>Bulk Import Tracks</h2>
+            <p style="font-size: 13px; color: var(--text-subdued); margin-bottom: 16px;">Paste a list of songs (one per line). We'll search and add the top result for each.</p>
+            <textarea id="bulk-import-textarea" class="modal-textarea" rows="8" placeholder="e.g. California Gurls - Katy Perry&#10;Party in the USA - Miley Cyrus"></textarea>
+            
+            <div id="bulk-import-status" class="hidden" style="margin-bottom: 16px;">
+                <div class="spinner" style="margin: 0 auto 8px auto; width: 24px; height: 24px; border-width: 3px;"></div>
+                <div id="bulk-import-text" style="color: var(--text-base); font-size: 14px;">Importing... please wait.</div>
+            </div>
+
+            <div class="modal-actions">
+                <button id="cancel-bulk-import" class="secondary-btn">Cancel</button>
+                <button id="confirm-bulk-import" class="primary-btn">Import</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="logo">
+                <i class="ph-fill ph-music-notes"></i>
+                <span>MusicYT</span>
+            </div>
+            
+            <ul class="nav-links">
+                <li class="active" id="nav-home"><i class="ph-fill ph-house"></i> Home</li>
+            </ul>
+
+            <div class="playlists">
+                <div class="playlists-header">
+                    <div class="section-title">Your Playlists</div>
+                    <button id="create-playlist-btn" class="icon-btn"><i class="ph ph-plus"></i></button>
+                </div>
+                <div id="sidebar-playlists" class="sidebar-playlist-list">
+                    <!-- Playlists injected here -->
+                </div>
+            </div>
+
+            <div class="free-banner" id="free-banner">MusicYT is free and will always be free. If you paid for this, you got scammed.</div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content" id="main-scroll-area">
+            <header class="topbar">
+                <div class="topbar-nav">
+                    <button class="nav-arrow"><i class="ph ph-caret-left"></i></button>
+                    <button class="nav-arrow"><i class="ph ph-caret-right"></i></button>
+                </div>
+                <div class="search-wrapper">
+                    <div class="search-container">
+                        <i class="ph ph-magnifying-glass search-icon"></i>
+                        <input type="text" id="search-input" placeholder="What do you want to play?">
+                    </div>
+                    <!-- Search Dropdown -->
+                    <div class="search-dropdown hidden" id="search-dropdown">
+                        <div id="search-dropdown-results"></div>
+                        <div id="search-dropdown-spinner" class="hidden">
+                            <div class="spinner" style="margin: 20px auto; width: 30px; height: 30px; border-width: 3px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Home View (Categories) -->
+            <div id="view-home" class="view-section">
+                <h2 style="font-size: 28px; margin-bottom: 24px;">Good evening</h2>
+                <div class="category-grid" id="home-recommendations">
+                    <!-- Cards will be populated here -->
+                </div>
+            </div>
+
+            <!-- Playlist View (Detailed Table) -->
+            <div id="view-playlist" class="view-section hidden" style="padding: 0;">
+                <div class="playlist-header" id="playlist-header-container">
+                    <div class="playlist-cover" id="playlist-cover">
+                        <i class="ph ph-music-notes"></i>
+                    </div>
+                    <div class="playlist-info">
+                        <span class="playlist-type">Playlist</span>
+                        <h1 id="playlist-title" class="playlist-title">Playlist Name</h1>
+                        <div class="playlist-meta">
+                            <span id="playlist-stats">0 songs</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="playlist-action-bar">
+                    <button class="play-btn-large" id="playlist-play-btn"><i class="ph-fill ph-play"></i></button>
+                    <button class="icon-btn" id="playlist-shuffle-btn" title="Shuffle Play"><i class="ph ph-shuffle" style="font-size: 32px; margin-left: 16px;"></i></button>
+                    <button class="icon-btn" id="playlist-bulk-import-btn" title="Import Tracks"><i class="ph ph-download-simple"></i></button>
+                </div>
+
+                <div class="playlist-tracks-container">
+                    <table class="tracks-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px; text-align: center;">#</th>
+                                <th>Title</th>
+                                <th>Date added</th>
+                                <th style="text-align: right; padding-right: 32px;"><i class="ph ph-clock"></i></th>
+                            </tr>
+                        </thead>
+                        <tbody id="playlist-table-body">
+                            <!-- Track rows go here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div id="global-loading" class="hidden">
+                <div class="spinner"></div>
+                <div class="spinner-text" id="spinner-text">Loading...</div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Bottom Playback Control Bar -->
+    <div class="playback-bar">
+        <div class="now-playing">
+            <img id="np-image" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'></svg>" alt="Album Art" class="hidden">
+            <div class="np-info">
+                <div id="np-title" class="title">No track playing</div>
+                <div id="np-artist" class="artist">-</div>
+            </div>
+        </div>
+
+        <div class="player-controls">
+            <div class="buttons">
+                <button id="btn-shuffle" class="control-btn"><i class="ph ph-shuffle"></i></button>
+                <button id="btn-skip-back" class="control-btn"><i class="ph-fill ph-skip-back"></i></button>
+                <button id="play-pause-btn" class="control-btn play-btn" disabled><i class="ph-fill ph-play-circle"></i></button>
+                <button id="btn-skip-forward" class="control-btn"><i class="ph-fill ph-skip-forward"></i></button>
+                <button id="btn-repeat" class="control-btn"><i class="ph ph-repeat"></i></button>
+            </div>
+            
+            <div class="progress-container">
+                <span id="time-current" class="time">0:00</span>
+                <div class="progress-bar-wrapper">
+                    <div class="progress-bar" id="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                </div>
+                <span id="time-total" class="time">0:00</span>
+            </div>
+        </div>
+
+        <div class="extra-controls">
+            <i class="ph ph-speaker-high" id="mute-btn" title="Mute/Unmute"></i>
+            <div class="volume-bar-wrapper">
+                <div class="volume-bar" id="volume-bar">
+                    <div class="volume-fill" id="volume-fill" style="width: 100%;"></div>
+                </div>
+            </div>
+            <i class="ph ph-corners-in" id="mini-player-btn" title="Mini Player"></i>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
