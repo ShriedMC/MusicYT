@@ -14,7 +14,7 @@ The first time it runs on a machine, MusicYT may set two things up:
 
 | Component | Why | Size |
 |-----------|-----|------|
-| **Microsoft Edge WebView2 Runtime** | Renders the window. Windows 11 already has it; some Windows 10 installs don't. | ~2 MB installer |
+| **Microsoft Edge WebView2 Runtime** | Renders the window. Windows 11 already has it; some Windows 10 installs don't. If automatic installer has issues, download the one that says "WithWebview" | ~2 MB installer |
 | **Deno** | `yt-dlp` uses it to resolve YouTube audio. | ~40 MB, one time |
 
 If WebView2 is missing you'll get a Yes/No prompt to install it. Deno downloads
